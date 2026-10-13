@@ -1,0 +1,79 @@
+#!/bin/bash
+# Serves the workbench on port 80 without elevating it.
+#
+# launchd binds :80 (only root may) and hands each accepted connection to an
+# unprivileged relay running as the invoking user. The relay is /usr/bin/nc — a
+# dumb TCP pipe to 127.0.0.1:$PORT. The workbench keeps running as you, which
+# matters because it spawns interactive shells and must never be root.
+#
+#   sudo ~/.claude/workbench/bin/install-port80
+#   sudo ~/.claude/workbench/bin/install-port80 --undo
+set -euo pipefail
+[ "$(id -u)" -eq 0 ] || { echo "run me with sudo" >&2; exit 1; }
+
+LABEL=ai.reachthepeople.workbench.port80
+PLIST=/Library/LaunchDaemons/$LABEL.plist
+PORT=${WORKBENCH_PORT:-7788}
+RUNAS=${SUDO_USER:-$(stat -f %Su /dev/console)}
+
+if [ "${1:-}" = "--undo" ]; then
+  launchctl bootout system "$PLIST" 2>/dev/null || true
+  rm -f "$PLIST"
+  echo "removed $LABEL"
+  exit 0
+fi
+[ -z "${1:-}" ] || { echo "unknown option: $1" >&2; exit 2; }
+
+cat > "$PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>$LABEL</string>
+
+  <!-- Root binds the privileged port; the handler below does not run as root. -->
+  <key>UserName</key><string>$RUNAS</string>
+
+  <key>inetdCompatibility</key>
+  <dict><key>Wait</key><false/></dict>
+
+  <key>Sockets</key>
+  <dict>
+    <key>Listeners4</key>
+    <dict>
+      <key>SockNodeName</key><string>127.0.0.1</string>
+      <key>SockServiceName</key><string>80</string>
+      <key>SockType</key><string>stream</string>
+      <key>SockFamily</key><string>IPv4</string>
+    </dict>
+    <key>Listeners6</key>
+    <dict>
+      <key>SockNodeName</key><string>::1</string>
+      <key>SockServiceName</key><string>80</string>
+      <key>SockType</key><string>stream</string>
+      <key>SockFamily</key><string>IPv6</string>
+    </dict>
+  </dict>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/nc</string>
+    <string>127.0.0.1</string>
+    <string>$PORT</string>
+  </array>
+</dict>
+</plist>
+PLIST
+
+chown root:wheel "$PLIST"; chmod 644 "$PLIST"
+plutil -lint "$PLIST"
+launchctl bootout system "$PLIST" 2>/dev/null || true
+launchctl bootstrap system "$PLIST"
+
+sleep 1
+echo
+if curl -s -o /dev/null -m 4 -w '' http://127.0.0.1/ 2>/dev/null; then
+  echo "OK -> http://claude.localhost   (relay runs as $RUNAS, not root)"
+else
+  echo "installed; relay runs as $RUNAS. Test with: curl -I http://claude.localhost"
+fi

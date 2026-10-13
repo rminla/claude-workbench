@@ -1,0 +1,67 @@
+#!/bin/bash
+# Hostname helper for the workbench.
+#
+# There is nothing to install. Use:
+#
+#     http://claude.localhost:7788
+#
+# Any *.localhost name is reserved by RFC 6761, resolves to loopback with no
+# /etc/hosts entry, and Chrome treats it as a secure context (so the clipboard
+# API works). Pick any prefix you like — wb.localhost works too.
+#
+# Two things that do NOT work on macOS, both learned the hard way:
+#
+#   .local      Reserved for mDNS/Bonjour. Resolution is multicast, so curl and
+#               some browsers stall ~4s and then fail no matter what /etc/hosts
+#               says. Do not put .local names in /etc/hosts.
+#
+#   pf rdr      A "redirect :80 -> :7788 on lo0" anchor does not apply to traffic
+#               originating on the same machine, so it cannot serve local browsing.
+#               Port 80 needs a root-owned listener, which this must never be —
+#               the server spawns interactive shells.
+#
+# This script now exists only to remove the .local/pf setup an earlier version
+# installed:
+#
+#     sudo ~/.claude/workbench/bin/setup-hostname --undo
+set -euo pipefail
+
+case "${1:-}" in
+  --undo) ;;
+  '')
+    sed -n '3,30p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0 ;;
+  *) echo "unknown option: $1 (only --undo is supported)" >&2; exit 2 ;;
+esac
+
+[ "$(id -u)" -eq 0 ] || { echo "run --undo with sudo" >&2; exit 1; }
+
+ANCHOR=/etc/pf.anchors/claude.local
+DAEMON=/Library/LaunchDaemons/ai.reachthepeople.workbench.pf.plist
+
+if grep -q 'claude workbench' /etc/hosts 2>/dev/null; then
+  cp /etc/hosts "/etc/hosts.bak.workbench.$(date +%Y%m%d%H%M%S)"
+  sed -i '' '/# added by claude workbench/d' /etc/hosts
+  echo "hosts: removed claude.local"
+else
+  echo "hosts: nothing to remove"
+fi
+
+if [ -f "$DAEMON" ]; then
+  launchctl bootout system "$DAEMON" 2>/dev/null || true
+  rm -f "$DAEMON"; echo "launchd: removed pf daemon"
+fi
+
+if grep -q 'claude.local' /etc/pf.conf 2>/dev/null; then
+  cp /etc/pf.conf "/etc/pf.conf.bak.workbench.$(date +%Y%m%d%H%M%S)"
+  sed -i '' '/claude\.local/d' /etc/pf.conf
+  echo "pf.conf: removed anchor lines"
+fi
+rm -f "$ANCHOR"
+pfctl -f /etc/pf.conf >/dev/null 2>&1 || true
+
+dscacheutil -flushcache 2>/dev/null || true
+killall -HUP mDNSResponder 2>/dev/null || true
+
+echo
+echo "Cleaned. Use http://claude.localhost:7788 — no setup required."

@@ -1,0 +1,4 @@
+# Runtime state — items.json is irreplaceable and must never be committed by accident.
+data/
+node_modules/
+.DS_Store

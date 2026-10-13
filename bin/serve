@@ -1,0 +1,22 @@
+#!/bin/bash
+# Resolves node at runtime so an nvm version bump does not break the LaunchAgent.
+resolve_node() {
+  for c in "$HOME/.nvm/alias/default" ; do
+    [ -f "$c" ] || continue
+    v=$(cat "$c")
+    for p in "$HOME/.nvm/versions/node/v$v/bin/node" "$HOME/.nvm/versions/node/$v/bin/node"; do
+      [ -x "$p" ] && { echo "$p"; return; }
+    done
+  done
+  # newest installed nvm node
+  latest=$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | sort -V | tail -1)
+  [ -n "$latest" ] && [ -x "$HOME/.nvm/versions/node/$latest/bin/node" ] && { echo "$HOME/.nvm/versions/node/$latest/bin/node"; return; }
+  for p in /opt/homebrew/bin/node /usr/local/bin/node /usr/bin/node; do
+    [ -x "$p" ] && { echo "$p"; return; }
+  done
+  command -v node
+}
+NODE=$(resolve_node)
+[ -x "$NODE" ] || { echo "[workbench] no node found" >&2; exit 1; }
+export PATH="$(dirname "$NODE"):/opt/homebrew/bin:/usr/local/bin:$PATH"
+exec "$NODE" "$HOME/.claude/workbench/server.js"

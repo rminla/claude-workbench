@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workbench</title>
+<link rel="stylesheet" href="/vendor/xterm.css">
+<link rel="stylesheet" href="/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14'>🧭</text></svg>">
+</head>
+<body>
+
+<aside class="side">
+  <div class="side-head">
+    <div class="mark">◈</div>
+    <h1>Workbench</h1>
+    <span class="grow"></span>
+    <button class="btn ghost sm modeswap" id="modeSwap" title="Switch view (⌥Tab)">Work ⇥</button>
+  </div>
+  <div class="side-scroll" id="sideWork" hidden>
+    <button class="btn primary" id="newSessionRail" style="width:100%;justify-content:center;margin:4px 0 2px">＋ New session</button>
+    <div class="side-label">Open sessions <span id="workCount" class="ct"></span></div>
+    <nav id="workTabs"></nav>
+    <div class="side-label">Start a session</div>
+    <div class="findrow">
+      <input class="search side-search" id="workQ" type="search" placeholder="Find work…" title="Type to filter · ↵ to ask Claude" autocomplete="off">
+      <button class="askbtn" id="askBtn" title="Ask Claude — finds work by meaning, and can look inside transcripts" aria-label="Ask Claude to find work">✦</button>
+    </div>
+    <nav id="workPick"></nav>
+  </div>
+
+  <div class="side-scroll" id="sideBoard">
+    <div class="side-label">Views</div>
+    <nav id="views"></nav>
+    <div class="side-label">Initiatives</div>
+    <nav id="inits"></nav>
+    <button class="nav" id="addInit" style="color:var(--ink-3);margin-top:4px">＋&nbsp; New initiative</button>
+  </div>
+  <div class="side-foot">
+    <button class="btn ghost sm" id="theme" title="Toggle theme">◐</button>
+    <button class="btn ghost sm bell" id="notify" aria-label="Notifications">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.5a4 4 0 0 0-4 4v2.6L2.6 10.6a.6.6 0 0 0 .5.9h9.8a.6.6 0 0 0 .5-.9L12 8.1V5.5a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6.3 13.2a1.8 1.8 0 0 0 3.4 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path class="slash" d="M2.5 2.5l11 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+    <button class="btn ghost sm" id="reindex">Re-index</button>
+    <span class="grow"></span>
+    <span class="btn ghost sm" id="stamp" style="cursor:default"></span>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar" id="topbar">
+    <div class="title-row">
+      <h2 id="boardTitle">All work</h2>
+      <span class="sub" id="boardSub"></span>
+      <span class="grow"></span>
+      <button class="btn primary" id="newSession">＋ New session</button>
+      <div class="segmented" id="density">
+        <button data-open="active" aria-pressed="true">Open</button>
+        <button data-open="all" aria-pressed="false">Everything</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input class="search" id="q" type="search" placeholder="Search work…   ( / )" autocomplete="off">
+      <button class="btn" id="fStatus">Status <span style="color:var(--ink-3)">▾</span></button>
+      <button class="btn" id="fOwner">Owner <span style="color:var(--ink-3)">▾</span></button>
+      <button class="btn" id="fSort">Sort <span style="color:var(--ink-3)">▾</span></button>
+      <span class="grow"></span>
+    </div>
+  </header>
+  <div class="board" id="board"></div>
+  <div class="workbar" id="workbar" hidden>
+    <span class="wtitle" id="workTitle" title="Click to sync name from the session (/rename)">No session open</span>
+    <span class="wmeta" id="workMeta"></span>
+    <span class="grow"></span>
+    <span class="wmeta" id="selHint">⌥ drag to select</span>
+    <button class="btn ghost sm" id="workCopy">⧉ Copy</button>
+    <button class="btn ghost sm" id="workBoard">◧ Board</button>
+  </div>
+</div>
+
+<div class="bulk" id="bulk" hidden></div>
+<div class="toast" id="toast"></div>
+<script src="/vendor/xterm.js"></script>
+<script src="/vendor/addon-fit.js"></script>
+<script src="/term.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "workbench",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local initiative board for Claude Code sessions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  }
+}
